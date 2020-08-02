@@ -1,0 +1,7 @@
+chkuuid
+MakeInstall
+src/*.o
+AUR
+src/config.h
+chkuuid*.zip
+chkuuid*.zip.*
