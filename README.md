@@ -3,7 +3,7 @@
 Compare the UUID of each partition with those found in FSTAB.
 
 
-<img src="https://git.disroot.org/daltomi/chkuuid/raw/branch/master/screenshot/scr0.png"/>
+<img src="https://github.com/daltomi/chkuuid/raw/master/screenshot/scr0.png"/>
 
 #### Libraries:
 
