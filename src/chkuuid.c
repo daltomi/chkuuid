@@ -205,7 +205,7 @@ static void enumerate_uuid_partitions(void)
 	struct udev* udev = 0;
 
 	if (!(udev = udev_new())) {
-		fprintf(stderr, CLR_ERROR "Failed to start udev.\n");
+		fprintf(stderr, CLR_ERROR "Failed to start udev.\n" CLR_NORMAL);
 		exit(EXIT_FAILURE);
 	}
 
@@ -214,7 +214,7 @@ static void enumerate_uuid_partitions(void)
 	struct udev_enumerate* enumerate = udev_enumerate_new(udev);
 
 	if (!enumerate) {
-		fprintf(stderr, CLR_ERROR "Failed to start udev enumerate.\n");
+		fprintf(stderr, CLR_ERROR "Failed to start udev enumerate.\n" CLR_NORMAL);
 		udev_unref(udev);
 		exit(EXIT_FAILURE);
 	}
@@ -224,7 +224,7 @@ static void enumerate_uuid_partitions(void)
 	udev_enumerate_add_match_property(enumerate, "DEVTYPE", "partition");
 
 	if (udev_enumerate_scan_devices(enumerate) < 0) {
-		fprintf(stderr, CLR_ERROR "Failed to scan devices.\n");
+		fprintf(stderr, CLR_ERROR "Failed to scan devices.\n" CLR_NORMAL);
 		udev_enumerate_unref(enumerate);
 		udev_unref(udev);
 		exit(EXIT_FAILURE);
@@ -269,13 +269,13 @@ static void enumerate_uuid_partitions(void)
 
 
 		if (!(table = mnt_new_table())) {
-			fprintf(stderr, CLR_ERROR "Error: mnt_new_table.\n");
+			fprintf(stderr, CLR_ERROR "Error: mnt_new_table.\n" CLR_NORMAL);
 			error = true;
 			goto clean;
 		}
 
 		if (!(iter = mnt_new_iter(MNT_ITER_FORWARD))) {
-			fprintf(stderr, CLR_ERROR "Error: mnt_new_iter.\n");
+			fprintf(stderr, CLR_ERROR "Error: mnt_new_iter.\n" CLR_NORMAL);
 			error = true;
 			goto clean;
 		}
@@ -347,12 +347,12 @@ int main(void)
 	printf("%s\n\n", "-------------------------------");
 
 	if (geteuid() != 0) {
-		fprintf(stderr, CLR_ERROR "Administrator permission are needed.\n");
+		fprintf(stderr, CLR_ERROR "Administrator permission are needed.\n" CLR_NORMAL);
 		exit(EXIT_FAILURE);
 	}
 
 	if (!exists_fstab()) {
-		fprintf(stderr, CLR_ERROR "Could not open the fstab file.");
+		fprintf(stderr, CLR_ERROR "Could not open the fstab file." CLR_NORMAL);
 		exit(EXIT_FAILURE);
 	}
 
