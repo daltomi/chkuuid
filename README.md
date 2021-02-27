@@ -11,9 +11,8 @@ Compare the UUID of each partition with those found in FSTAB.
 
 - libmount
 
-- libudev (*)
+- libudev
 
-(*) Note: This project does not use sytemd libraries, use the `libeudev` package from your distribution.
 
 #### Tool
 
