@@ -16,7 +16,7 @@ endif
 
 APP := chkuuid
 
-APP_VER := "1.5"
+APP_VER := "1.6"
 PKG_REV := "1"
 
 ZIP := $(APP)-$(APP_VER)-$(PKG_REV).zip

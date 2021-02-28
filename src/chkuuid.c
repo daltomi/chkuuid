@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2018, 2020 daltomi <daltomi@disroot.org>
+	Copyright (C) 2018, 2021 daltomi <daltomi@disroot.org>
 
 	This file is part of chkuuid.
 
@@ -104,7 +104,7 @@ static void print_state(void)
 }
 
 
-static void read_fstab(void)
+static bool read_fstab(void)
 {
 	char const* const STR_UUID = "UUID=";
 	char const* const STR_PARTUUID = "PARTUUID=";
@@ -114,9 +114,13 @@ static void read_fstab(void)
 
 	size_t const LEN_STR_PARTITION_UUID = strlen(partition.uuid);
 
-	struct fstab* fs = 0;
+	struct fstab* fs = NULL;
 
-	setfsent();
+	if (0 == setfsent()) {
+		fprintf(stderr, CLR_ERROR "Could not open the 'fstab' file.\n" CLR_NORMAL);
+		return false;
+	}
+
 
 	partition.state = NOTFOUND;
 
@@ -124,48 +128,53 @@ static void read_fstab(void)
 
 		char const* const spec = fs->fs_spec;
 
-		if (strstr(spec, "LABEL=") || strstr(spec, "/dev/")) {
+		assert(NULL != spec);
+
+		if ((NULL != strstr(spec, "LABEL=")) || (NULL != strstr(spec, "/dev/"))) {
 			continue;
 		}
 
-		char const* uuid = 0L;
-		char const* partuuid = 0;
-		bool const find_uuid = (uuid = strstr(spec, STR_UUID)) || (partuuid = strstr(spec, STR_PARTUUID));
+		char const* uuid = NULL;
+		char const* partuuid = NULL;
+		bool const find_uuid = (NULL != (uuid = strstr(spec, STR_UUID))) ||
+				(NULL != (partuuid = strstr(spec, STR_PARTUUID)));
 
 		if (!find_uuid) {
 			continue;
 		}
 
 		char const* const file = fs->fs_file;
-		char const* cmp_uuid = 0;
+		assert(NULL != file);
+		char const* cmp_uuid = NULL;
 
-		if (uuid) {
+		if (NULL != uuid) {
 			cmp_uuid = (uuid + LEN_STR_UUID);
 
 			// remove double quotes
-			if (strchr(uuid, '\"')) {
+			if (NULL != strchr(uuid, '\"')) {
 					cmp_uuid = (uuid + LEN_STR_UUID + 1);
 					*((char*)strrchr(uuid, '\"')) = '\0';
 			}
 
-		} else if (partuuid) {
+		} else if (NULL != partuuid) {
 			cmp_uuid = (partuuid + LEN_STR_PARTUUID);
 
 			// remove double quotes
-			if (strchr(partuuid, '\"')) {
+			if (NULL != strchr(partuuid, '\"')) {
 					cmp_uuid = (partuuid + LEN_STR_PARTUUID + 1);
 					*((char*)strrchr(partuuid, '\"')) = '\0';
 			}
 		}
 
-		assert(cmp_uuid);
+		assert(NULL != cmp_uuid);
 		assert(*cmp_uuid != '\0');
 
-		if (strcmp(partition.mntpoint, "NONE")) {
+		if (0 != strcmp(partition.mntpoint, "NONE")) {
 
-			if (!strcmp(file, partition.mntpoint) || (!strcmp(file, "none") &&  !strcmp(partition.mntpoint, "swap"))) {
+			if (0 == strcmp(file, partition.mntpoint) ||
+					(0 == strcmp(file, "none") &&  0 == strcmp(partition.mntpoint, "swap"))) {
 
-				if (!strncmp(cmp_uuid, partition.uuid, LEN_STR_PARTITION_UUID)) {
+				if (0 == strncmp(cmp_uuid, partition.uuid, LEN_STR_PARTITION_UUID)) {
 					partition.state = OK;
 				} else {
 					partition.state = BAD;
@@ -175,7 +184,7 @@ static void read_fstab(void)
 
 		} else {
 
-			if (!strncmp(cmp_uuid, partition.uuid, LEN_STR_PARTITION_UUID)) {
+			if (0 == strncmp(cmp_uuid, partition.uuid, LEN_STR_PARTITION_UUID)) {
 				partition.state = OK_NOT_MOUNT;
 				partition.mntpoint = file;
 				break;
@@ -184,6 +193,7 @@ static void read_fstab(void)
 	}
 
 	endfsent();
+	return true;
 }
 
 
@@ -191,7 +201,7 @@ static bool exists_fstab(void)
 {
 	bool ret = true;
 
-	if (setfsent() == 0) {
+	if (0 == setfsent()) {
 		ret = false;
 	}
 
@@ -202,47 +212,51 @@ static bool exists_fstab(void)
 
 static void enumerate_uuid_partitions(void)
 {
-	struct udev* udev = 0;
+	struct udev* udev = NULL;
 
 	if (!(udev = udev_new())) {
 		fprintf(stderr, CLR_ERROR "Failed to start udev.\n" CLR_NORMAL);
 		exit(EXIT_FAILURE);
 	}
 
+	int udev_ret = 0;
 	bool error = false;
-	struct udev_list_entry* entry = 0;
+	struct udev_list_entry* entry = NULL;
 	struct udev_enumerate* enumerate = udev_enumerate_new(udev);
 
-	if (!enumerate) {
+	if (NULL == enumerate) {
 		fprintf(stderr, CLR_ERROR "Failed to start udev enumerate.\n" CLR_NORMAL);
-		udev_unref(udev);
+		(void)udev_unref(udev);
 		exit(EXIT_FAILURE);
 	}
 
-	udev_enumerate_add_match_subsystem(enumerate, "block");
-	udev_enumerate_add_match_property(enumerate, "DEVTYPE", "disk");
-	udev_enumerate_add_match_property(enumerate, "DEVTYPE", "partition");
+	udev_ret = udev_enumerate_add_match_subsystem(enumerate, "block");
+	assert(0 == udev_ret);
+	udev_ret = udev_enumerate_add_match_property(enumerate, "DEVTYPE", "disk");
+	assert(0 == udev_ret);
+	udev_ret = udev_enumerate_add_match_property(enumerate, "DEVTYPE", "partition");
+	assert(0 == udev_ret);
 
 	if (udev_enumerate_scan_devices(enumerate) < 0) {
 		fprintf(stderr, CLR_ERROR "Failed to scan devices.\n" CLR_NORMAL);
 		udev_enumerate_unref(enumerate);
-		udev_unref(udev);
+		(void)udev_unref(udev);
 		exit(EXIT_FAILURE);
 	}
 
 	udev_list_entry_foreach(entry, udev_enumerate_get_list_entry(enumerate)) {
 
-		blkid_probe pr = 0;
-		struct libmnt_fs* fs = 0;
-		struct libmnt_iter* iter = 0;
-		struct libmnt_table* table = 0;
+		blkid_probe pr = NULL;
+		struct libmnt_fs* fs = NULL;
+		struct libmnt_iter* iter = NULL;
+		struct libmnt_table* table = NULL;
 		struct udev_device* dev = udev_device_new_from_syspath(udev, udev_list_entry_get_name(entry));
 
-		if (!(partition.name = udev_device_get_devnode(dev))) {
+		if (NULL == (partition.name = udev_device_get_devnode(dev))) {
 			goto clean;
 		}
 
-		if (!(pr = blkid_new_probe_from_filename(partition.name))) {
+		if (NULL == (pr = blkid_new_probe_from_filename(partition.name))) {
 			/* Error al abrir el dispositivo.
 			 * Por ej. un lector SD sin la tarjeta.
 			 * */
@@ -255,26 +269,26 @@ static void enumerate_uuid_partitions(void)
 		/* Sólo las particiones con uuid.
 		 * Esto discrimina entre /dev/sda y /dev/sda1.
 		 * */
-		if (!partition.uuid) {
+		if (NULL == partition.uuid) {
 			goto clean;
 		}
 
 		blkid_probe_lookup_value(pr, "TYPE", &partition.type, 0);
 
 		/* La partition swap no se lista en mtab.*/
-		if (!strcmp(partition.type, "swap")) {
+		if (0 == strcmp(partition.type, "swap")) {
 			partition.mntpoint = "swap";
 			goto swap;
 		}
 
 
-		if (!(table = mnt_new_table())) {
+		if (NULL == (table = mnt_new_table())) {
 			fprintf(stderr, CLR_ERROR "Error: mnt_new_table.\n" CLR_NORMAL);
 			error = true;
 			goto clean;
 		}
 
-		if (!(iter = mnt_new_iter(MNT_ITER_FORWARD))) {
+		if (NULL == (iter = mnt_new_iter(MNT_ITER_FORWARD))) {
 			fprintf(stderr, CLR_ERROR "Error: mnt_new_iter.\n" CLR_NORMAL);
 			error = true;
 			goto clean;
@@ -282,46 +296,50 @@ static void enumerate_uuid_partitions(void)
 
 		mnt_table_parse_mtab(table, 0);
 
-		while (mnt_table_next_fs(table, iter, &fs) == 0) {
+		while (0 == mnt_table_next_fs(table, iter, &fs)) {
 			/* Sólo particiones.
 			 * Esto discrimina entre '/dev/sda1 on /home' y
 			 * 'tmpfs on /run/user'.
 			 * */
-			if (!strcmp(partition.name, mnt_fs_get_source(fs))) {
+			if (0 == strcmp(partition.name, mnt_fs_get_source(fs))) {
 				partition.mntpoint = mnt_fs_get_target(fs);
+				assert(NULL != partition.mntpoint);
 				break;
 			} else {
 				partition.mntpoint = "NONE";
 			}
 		}
 swap:
-		read_fstab();
-		print_state();
+		error = !read_fstab();
+
+		if (!error) {
+			print_state();
+		}
 clean:
-		if (fs) {
+		if (NULL != fs) {
 			mnt_unref_fs(fs);
 		}
 
-		if (table) {
+		if (NULL != table) {
 			mnt_unref_table(table);
 		}
 
-		if (iter) {
+		if (NULL != iter) {
 			mnt_free_iter(iter);
 		}
 
-		if (pr) {
+		if (NULL != pr) {
 			blkid_free_probe(pr);
 		}
 
-		if (dev) {
+		if (NULL != dev) {
 			udev_device_unref(dev);
 		}
 
-		partition.name = 0;
-		partition.uuid = 0;
-		partition.mntpoint = 0;
-		partition.type = 0;
+		partition.name = NULL;
+		partition.uuid = NULL;
+		partition.mntpoint = NULL;
+		partition.type = NULL;
 
 		if (error) {
 			break;
@@ -330,12 +348,12 @@ clean:
 	} /* udev_list_entry_foreach */
 
 
-	if (enumerate) {
+	if (NULL != enumerate) {
 		udev_enumerate_unref(enumerate);
 	}
 
-	if (udev) {
-		udev_unref(udev);
+	if (NULL != udev) {
+		(void)udev_unref(udev);
 	}
 }
 
@@ -346,7 +364,7 @@ int main(void)
 	printf("%20s\n", TITLE);
 	printf("%s\n\n", "-------------------------------");
 
-	if (geteuid() != 0) {
+	if (0 != geteuid()) {
 		fprintf(stderr, CLR_ERROR "Administrator permission are needed.\n" CLR_NORMAL);
 		exit(EXIT_FAILURE);
 	}
