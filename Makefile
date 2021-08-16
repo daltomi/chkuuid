@@ -16,22 +16,20 @@ endif
 
 APP := chkuuid
 
-APP_VER := "1.6"
+APP_VER := "1.7"
 PKG_REV := "1"
 
 ZIP := $(APP)-$(APP_VER)-$(PKG_REV).zip
 
-CC ?= cc
+CC ?= gcc
 
-CLIBS :=-lc  $(shell pkg-config --libs blkid libudev mount)
+CLIBS :=-lc  $(shell pkg-config --libs blkid libudev mount) -Wl,-z,relro,-z,now
 
-ifeq ("$(CC)", "cc")
-CLIBS_RELEASE :=-Wl,-s
-endif
 
-CFLAGS += -Wall -std=c99 -D_GNU_SOURCE $(shell pkg-config --cflags blkid libudev mount)
-CFLAGS_RELEASE:= -O3 -DNDEBUG
-CFLAGS_DEBUG:= -O0 -g -DDEBUG -Wextra -Werror -Wimplicit-fallthrough
+
+CFLAGS += -Wall -std=c99 -D_FORTIFY_SOURCE=2 -D_GNU_SOURCE $(shell pkg-config --cflags blkid libudev mount)
+CFLAGS_RELEASE:= -O2 -DNDEBUG
+CFLAGS_DEBUG:= -O1 -g -DDEBUG -Wextra -Werror -Wimplicit-fallthrough
 
 
 SOURCE := $(wildcard src/*.c)
@@ -44,7 +42,7 @@ version:
 	-@sed 's/@APP_VER@/$(APP_VER)/g' src/config.h.in > src/config.h
 
 release: CFLAGS+=$(CFLAGS_RELEASE)
-release: CLIBS+=$(CLIBS_RELEASE)
+release: CLIBS+=-Wl,-s
 release: version $(APP)
 
 debug: CFLAGS+=$(CFLAGS_DEBUG)

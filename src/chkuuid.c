@@ -219,7 +219,6 @@ static void enumerate_uuid_partitions(void)
 		exit(EXIT_FAILURE);
 	}
 
-	int udev_ret = 0;
 	bool error = false;
 	struct udev_list_entry* entry = NULL;
 	struct udev_enumerate* enumerate = udev_enumerate_new(udev);
@@ -230,12 +229,19 @@ static void enumerate_uuid_partitions(void)
 		exit(EXIT_FAILURE);
 	}
 
+#ifdef DEBUG
+	int udev_ret = 0;
 	udev_ret = udev_enumerate_add_match_subsystem(enumerate, "block");
 	assert(0 == udev_ret);
 	udev_ret = udev_enumerate_add_match_property(enumerate, "DEVTYPE", "disk");
 	assert(0 == udev_ret);
 	udev_ret = udev_enumerate_add_match_property(enumerate, "DEVTYPE", "partition");
 	assert(0 == udev_ret);
+#else
+	udev_enumerate_add_match_subsystem(enumerate, "block");
+	udev_enumerate_add_match_property(enumerate, "DEVTYPE", "disk");
+	udev_enumerate_add_match_property(enumerate, "DEVTYPE", "partition");
+#endif
 
 	if (udev_enumerate_scan_devices(enumerate) < 0) {
 		fprintf(stderr, CLR_ERROR "Failed to scan devices.\n" CLR_NORMAL);
