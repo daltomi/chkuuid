@@ -5,31 +5,26 @@ Compare the UUID of each partition with those found in FSTAB.
 
 <img src="https://github.com/daltomi/chkuuid/raw/master/screenshot/scr0.png"/>
 
-#### Libraries:
+### Platform
+* GNU/Linux
 
-- libblkid
+### Package - ArchLinux - AUR
+[chkuuid-git](https://aur.archlinux.org/packages/chkuuid-git/)
 
-- libmount
+  * GPG key
+	```bash
+	gpg --keyserver gozer.rediris.es --recv B1B08540E74FE8A2
+	```
 
-- libudev
+### Dependencies
+* Libraries : **libblkid** **libmount**  **libudev**
+* Build:  **gcc**, **make**, **pkg-config**
 
 
-#### Tool
-
-- pkg-config
-
-
-#### Compile
-
-```
+### Build
+```bash
 make
-
-```
-
-- To compile in debug mode:
-
-```
-make clean # optional
+-- or --
 make debug
 ```
 
