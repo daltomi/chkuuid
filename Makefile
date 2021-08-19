@@ -14,6 +14,10 @@ ifeq ("$(shell pkg-config --libs mount 2> /dev/null)","")
 $(error 'pkg-config: mount library' NOT FOUND)
 endif
 
+ifeq ("$(shell which install 2> /dev/null)","")
+$(error 'install (coreutils)' NOT FOUND)
+endif
+
 APP := chkuuid
 
 APP_VER := "1.7"
@@ -56,6 +60,10 @@ $(APP): $(OBJ)
 	$(CC) -c $<
 
 .PHONY: dist
+
+install:
+	-@install -Dt $(PREFIX)/bin/ -m755 $(APP)
+
 dist:
 	zip $(ZIP) Makefile src/*.c src/*.in README.md LICENSE
 
